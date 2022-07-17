@@ -4,6 +4,8 @@ import { GeneratorOptions, WordResult } from "../../utils/types";
 import { readFileSync } from "fs";
 import path from "path";
 import Sentiment from "sentiment";
+import WordPOS from "wordpos";
+const wordpos = new WordPOS();
 const sentiment = new Sentiment();
 
 type WordsResponse = {
@@ -34,6 +36,42 @@ function bisectLeft(array: number[], target: number) {
   return low;
 }
 
+async function matchesPartOfSpeech(word: string, partsOfSpeech: string[]) {
+  const posOptions = ["Noun", "Verb", "Adjective", "Adverb"];
+  const settings = posOptions.map((x) => partsOfSpeech.includes(x));
+  const pos = await getPartsOfSpeechTruthValues(word);
+  if (pos.every((x) => !x)) {
+    return false;
+  }
+
+  const posMatchesInvalid = pos.some((x, i) => x && !settings[i]);
+  if (posMatchesInvalid) {
+    return false;
+  }
+
+  const posMatchesAtLeastOneValid = pos.some((x, i) => x && settings[i]);
+  return posMatchesAtLeastOneValid;
+}
+
+async function getPartsOfSpeech(word: string) {
+  const posOptions = ["Noun", "Verb", "Adjective", "Adverb"];
+  const pos = await getPartsOfSpeechTruthValues(word);
+  const posOptionsFiltered = posOptions.filter((_, i) => pos[i]);
+  return posOptionsFiltered;
+}
+
+async function getPartsOfSpeechTruthValues(word: string) {
+  try {
+    const isNoun: boolean = await wordpos.isNoun(word);
+    const isVerb: boolean = await wordpos.isVerb(word);
+    const isAdjective: boolean = await wordpos.isAdjective(word);
+    const isAdverb: boolean = await wordpos.isAdverb(word);
+    return [isNoun, isVerb, isAdjective, isAdverb];
+  } catch (e) {
+    return [false, false, false, false];
+  }
+}
+
 function getPercentile(
   word: string,
   freq: WordFrequencyList,
@@ -44,25 +82,30 @@ function getPercentile(
   return percentile;
 }
 
-function tryGenerateWord(
+async function tryGenerateWord(
   wordChoices: string[],
-  existing: WordResult[]
-): WordResult | null {
+  existing: WordResult[],
+  curriedGetPercentile: (word: string) => number
+): Promise<WordResult | null> {
   const word = wordChoices[Math.floor(Math.random() * wordChoices.length)];
   if (existing.find((w) => w.word === word)) {
     return null;
   }
 
-  return { word };
+  return {
+    word,
+    partsOfSpeech: await getPartsOfSpeech(word),
+    percentile: curriedGetPercentile(word),
+  };
 }
 
-function generateWords(
+async function generateWords(
   args: GeneratorOptions,
   freq: { [key: string]: number }
 ) {
   const words: WordResult[] = [];
   const counts = Object.values(freq).sort((a, b) => a - b);
-  const wordList = Object.keys(freq)
+  const prePoSFilteredWordList = Object.keys(freq)
     .filter((w) => w.length >= args.minLength && w.length <= args.maxLength)
     .filter((w) => w.startsWith(args.startsWith) && w.endsWith(args.endsWith))
     .filter(
@@ -75,11 +118,21 @@ function generateWords(
         getPercentile(w, freq, counts) >= args.freqBounds[0] &&
         getPercentile(w, freq, counts) <= args.freqBounds[1]
     );
-  console.log("# words:", wordList.length);
+
+  const posMatches = await Promise.all(
+    prePoSFilteredWordList.map(
+      (x) =>
+        args.partsOfSpeech.length == 4 ||
+        matchesPartOfSpeech(x, args.partsOfSpeech)
+    )
+  );
+  const wordList = prePoSFilteredWordList.filter((_, i) => posMatches[i]);
 
   let tries = 0;
   while (words.length < args.numWords) {
-    const attempt = tryGenerateWord(wordList, words);
+    const attempt = await tryGenerateWord(wordList, words, (word: string) =>
+      getPercentile(word, freq, counts)
+    );
     if (attempt) {
       words.push(attempt);
     }
@@ -93,14 +146,14 @@ function generateWords(
   return words;
 }
 
-export default function handler(
+export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<WordsResponse>
 ) {
   const args: GeneratorOptions = req.body;
   const file = path.join(process.cwd(), "files", "wordfreq.json");
   const freq = JSON.parse(readFileSync(file, "utf8"));
-  const words = generateWords(args, freq);
+  const words = await generateWords(args, freq);
 
   res.status(200).json({ words });
 }

@@ -15,7 +15,8 @@
     "primereact": "^8.2.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "sentiment": "^5.0.2"
+    "sentiment": "^5.0.2",
+    "wordpos": "^2.1.0"
   },
   "devDependencies": {
     "@types/node": "18.0.5",

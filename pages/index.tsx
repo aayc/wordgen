@@ -10,6 +10,7 @@ import styles from "../styles/Home.module.css";
 import { useState } from "react";
 import { GeneratorOptions, Sentiment, WordResult } from "../utils/types";
 import WordResultTag from "../components/WordResultTag";
+import { MultiSelect } from "primereact/multiselect";
 
 const Home: NextPage = () => {
   const [words, setWords] = useState<WordResult[]>([]);
@@ -18,6 +19,7 @@ const Home: NextPage = () => {
   const [minLength, setMinLength] = useState(0);
   const [maxLength, setMaxLength] = useState(1000);
   const [startsWith, setStartsWith] = useState("");
+  const [partsOfSpeech, setPartsOfSpeech] = useState<string[]>([]);
   const [endsWith, setEndsWith] = useState("");
   const [sentimentBounds, setSentimentBounds] = useState<any>([0, 100]);
   const [freqBounds, setFreqBounds] = useState<any>([0, 100]);
@@ -45,6 +47,10 @@ const Home: NextPage = () => {
         parseSentiment(sentimentBounds[1])[0],
       ],
       freqBounds,
+      partsOfSpeech:
+        partsOfSpeech.length > 0
+          ? partsOfSpeech
+          : ["Noun", "Verb", "Adjective", "Adverb"],
     };
 
     setLoading(true);
@@ -55,6 +61,7 @@ const Home: NextPage = () => {
     })
       .then((res) => res.json())
       .then((data) => {
+        console.log("RESULTS:", data);
         setWords(data.words);
         setLoading(false);
       });
@@ -95,6 +102,19 @@ const Home: NextPage = () => {
           <InputText
             value={endsWith}
             onChange={(e) => setEndsWith(e.target.value)}
+          />
+          <p className="mt-4">Parts of speech:</p>
+          <MultiSelect
+            value={partsOfSpeech}
+            options={["Noun", "Verb", "Adjective", "Adverb"].map((s) => ({
+              label: s,
+              value: s,
+            }))}
+            onChange={(e: any) => {
+              console.log(e.value);
+              setPartsOfSpeech(e.value);
+            }}
+            placeholder="Select Parts of Speech"
           />
 
           <p className="mt-4">

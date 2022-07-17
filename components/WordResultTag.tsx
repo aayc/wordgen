@@ -20,6 +20,22 @@ export default function WordResultTag(props: WordResultTagProps) {
   const toast = useRef(null);
   const options = [
     {
+      label: "View Parts of Speech, Percentile",
+      icon: "pi pi-question-circle",
+      command: () => {
+        (toast as any).current.show({
+          severity: "info",
+          summary: "About the word: " + props.word.word,
+          detail:
+            "Parts of speech: " +
+            props.word.partsOfSpeech.join(", ") +
+            " (top most frequent " +
+            Math.round(props.word.percentile) +
+            "th percentile)",
+        });
+      },
+    },
+    {
       label: "Check domain availability",
       icon: "pi pi-check",
       command: () => {
