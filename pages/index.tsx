@@ -13,7 +13,7 @@ import WordResultTag from "../components/WordResultTag";
 import { MultiSelect } from "primereact/multiselect";
 
 const Home: NextPage = () => {
-  const [words, setWords] = useState<WordResult[]>([]);
+  const [words, setWords] = useState<WordResult[] | null>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [numWords, setNumWords] = useState<number>(1);
   const [minLength, setMinLength] = useState(0);
@@ -62,7 +62,11 @@ const Home: NextPage = () => {
       .then((res) => res.json())
       .then((data) => {
         console.log("RESULTS:", data);
-        setWords(data.words);
+        if (data.words.length == 1 && !("word" in data.words[0])) {
+          setWords(null);
+        } else {
+          setWords(data.words);
+        }
         setLoading(false);
       });
   };
@@ -75,7 +79,7 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <div className="my-8 flex justify-center">
+      <div className="my-8 flex justify-center px-4">
         <div className="max-w-2xl">
           <h1 className="text-center">Aaron&rsquo;s Word Generator</h1>
           <p className="mt-8"># of words to generate:</p>
@@ -145,7 +149,7 @@ const Home: NextPage = () => {
               label={
                 loading
                   ? "Generating..."
-                  : words.length == 0
+                  : !words || words.length == 0
                   ? "Generate"
                   : "Generate again"
               }
@@ -155,14 +159,20 @@ const Home: NextPage = () => {
             />
           </div>
 
-          {words.length > 0 && (
-            <div className="mt-8">
-              <h1 className="text-center">Results:</h1>
-              <div className="flex flex-wrap">
-                {words.map((word) => (
-                  <WordResultTag key={word.word} word={word} />
-                ))}
+          {words ? (
+            words.length > 0 && (
+              <div className="mt-8">
+                <h1 className="text-center">Results:</h1>
+                <div className="flex flex-wrap">
+                  {words.map((word) => (
+                    <WordResultTag key={JSON.stringify(word)} word={word} />
+                  ))}
+                </div>
               </div>
+            )
+          ) : (
+            <div className="mt-8">
+              <h1 className="text-center">Unable to generate words</h1>
             </div>
           )}
         </div>
