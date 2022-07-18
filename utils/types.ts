@@ -1,8 +1,9 @@
-type Sentiment = "positive" | "negative" | "neutral";
+type SentimentClass = "positive" | "negative" | "neutral";
 type WordResult = {
   word: string;
   partsOfSpeech: string[];
   percentile: number;
+  sentiment: number;
 };
 
 type GeneratorOptions = {
@@ -16,4 +17,4 @@ type GeneratorOptions = {
   partsOfSpeech: string[];
 };
 
-export type { Sentiment, WordResult, GeneratorOptions };
+export type { SentimentClass, WordResult, GeneratorOptions };

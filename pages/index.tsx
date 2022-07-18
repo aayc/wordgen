@@ -8,7 +8,7 @@ import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
 import styles from "../styles/Home.module.css";
 import { useState } from "react";
-import { GeneratorOptions, Sentiment, WordResult } from "../utils/types";
+import { GeneratorOptions, SentimentClass, WordResult } from "../utils/types";
 import WordResultTag from "../components/WordResultTag";
 import { MultiSelect } from "primereact/multiselect";
 
@@ -24,7 +24,7 @@ const Home: NextPage = () => {
   const [sentimentBounds, setSentimentBounds] = useState<any>([0, 100]);
   const [freqBounds, setFreqBounds] = useState<any>([0, 100]);
 
-  const parseSentiment = (sentiment: number): [number, Sentiment] => {
+  const parseSentiment = (sentiment: number): [number, SentimentClass] => {
     const s = (sentiment - 50) / 50;
     if (s < -0.25) {
       return [s, "negative"];
@@ -35,7 +35,39 @@ const Home: NextPage = () => {
     }
   };
 
+  const downloadWordsAsCsv = async () => {
+    // Take words array and download as csv
+    if (words) {
+      const header = [
+        "word",
+        "freq precentile",
+        "sentiment",
+        "parts of speech",
+      ].join(",");
+      const csv = words
+        .map((word: WordResult) => {
+          return `${word.word},${word.percentile},${
+            word.sentiment
+          },${word.partsOfSpeech.join(":")}`;
+        })
+        .join("\n");
+      const blob = new Blob([header + "\n" + csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "words.csv";
+      link.click();
+    }
+  };
+
   const requestWords = (): void => {
+    setLoading(true);
+    if (numWords > 1000) {
+      alert("Please generate no more than 1000 words at a time");
+      setLoading(false);
+      return;
+    }
+
     const body: GeneratorOptions = {
       numWords,
       minLength,
@@ -53,7 +85,6 @@ const Home: NextPage = () => {
           : ["Noun", "Verb", "Adjective", "Adverb"],
     };
 
-    setLoading(true);
     fetch("/api/words", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -61,7 +92,6 @@ const Home: NextPage = () => {
     })
       .then((res) => res.json())
       .then((data) => {
-        console.log("RESULTS:", data);
         if (data.words.length == 1 && !("word" in data.words[0])) {
           setWords(null);
         } else {
@@ -162,7 +192,16 @@ const Home: NextPage = () => {
           {words ? (
             words.length > 0 && (
               <div className="mt-8">
-                <h1 className="text-center">Results:</h1>
+                <hr></hr>
+                <div className="flex justify-between mb-8">
+                  <h1 className="text-center mt-1">Results:</h1>
+                  <Button
+                    className="p-button-sm"
+                    label="Download words as CSV"
+                    icon="pi pi-download"
+                    onClick={(e) => downloadWordsAsCsv()}
+                  ></Button>
+                </div>
                 <div className="flex flex-wrap">
                   {words.map((word) => (
                     <WordResultTag key={JSON.stringify(word)} word={word} />

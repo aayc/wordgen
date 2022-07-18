@@ -1,6 +1,10 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from "next";
-import { GeneratorOptions, WordResult } from "../../utils/types";
+import {
+  GeneratorOptions,
+  WordResult,
+  SentimentClass,
+} from "../../utils/types";
 import { readFileSync } from "fs";
 import path from "path";
 import Sentiment from "sentiment";
@@ -96,6 +100,7 @@ async function tryGenerateWord(
     word,
     partsOfSpeech: await getPartsOfSpeech(word),
     percentile: curriedGetPercentile(word),
+    sentiment: getSentiment(word),
   };
 }
 
