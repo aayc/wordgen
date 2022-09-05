@@ -7,7 +7,7 @@ import { InputNumber } from "primereact/inputnumber";
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
 import styles from "../styles/Home.module.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { GeneratorOptions, SentimentClass, WordResult } from "../utils/types";
 import WordResultTag from "../components/WordResultTag";
 import { MultiSelect } from "primereact/multiselect";
@@ -23,6 +23,7 @@ const Home: NextPage = () => {
   const [endsWith, setEndsWith] = useState("");
   const [sentimentBounds, setSentimentBounds] = useState<any>([0, 100]);
   const [freqBounds, setFreqBounds] = useState<any>([0, 100]);
+  const [similarTo, setSimilarTo] = useState<string>("");
 
   const parseSentiment = (sentiment: number): [number, SentimentClass] => {
     const s = (sentiment - 50) / 50;
@@ -83,6 +84,7 @@ const Home: NextPage = () => {
         partsOfSpeech.length > 0
           ? partsOfSpeech
           : ["Noun", "Verb", "Adjective", "Adverb"],
+      similarTo: similarTo.split(",")
     };
 
     fetch("/api/words", {
@@ -173,6 +175,11 @@ const Home: NextPage = () => {
             value={freqBounds}
             onChange={(e) => setFreqBounds(e.value)}
             range
+          />
+          <p className="mt-4">Similar to (words separated by comma):</p>
+          <InputText
+            value={similarTo}
+            onChange={(e) => setSimilarTo(e.target.value)}
           />
           <div className="mt-4 flex justify-center">
             <Button

@@ -15,6 +15,7 @@ type GeneratorOptions = {
   endsWith: string;
   numWords: number;
   partsOfSpeech: string[];
+  similarTo: string[];
 };
 
 export type { SentimentClass, WordResult, GeneratorOptions };
